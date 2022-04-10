@@ -1,0 +1,178 @@
+---
+title: "challenge 10"
+author: "Landon Porter"
+date: "4/7/2022"
+output: html_document
+---
+
+```{r}
+#CHALLENGE 10
+
+#Coding challenge 4-5-2022
+
+library("tidyverse")
+library("manipulate")
+library("patchwork")
+library("infer")
+library("lmodel2")
+library("skimr")
+library("ggplot2")
+
+
+f <- "https://raw.githubusercontent.com/lbp576/ada-2022-datasets/main/KamilarAndCooperData.csv"
+
+d <- read_csv(f, col_names = TRUE) 
+
+head(d) 
+
+#Plot lifespan (MaxLongevity_m) versus female body mass (Body mass female mean)
+
+p1 <- plot(data = d, MaxLongevity_m ~ Body_mass_female_mean)
+p1
+
+#Is the relationship linear?
+#relationship not linear, Take the log! 
+
+p2 <- plot(data = d, MaxLongevity_m ~ log(Body_mass_female_mean))
+p2
+p3 <- plot(data = d, log(MaxLongevity_m) ~ log(Body_mass_female_mean))
+p3
+
+
+#Run linear models for regular function, log(x) vs Y, and Log(x) vs Log(y)
+
+m1 <- lm(formula = MaxLongevity_m ~ Body_mass_female_mean, data =d)
+m1
+
+m2 <- lm(formula = MaxLongevity_m ~ log(Body_mass_female_mean), data =d)
+m2
+
+m3 <- lm(formula = log(MaxLongevity_m) ~ log(Body_mass_female_mean), data =d)
+m3
+
+
+#plot the residuals in relation to the explanatory variable then make histograms of the residuals 
+
+e1 <- resid(m1)
+plot(m1$model$Body_mass_female_mean, e1)
+
+e2 <- resid(m2)
+plot(m2$model$`log(Body_mass_female_mean)`, e2)
+
+e3 <- resid(m3)
+plot(m3$model$`log(Body_mass_female_mean)`, e3)
+
+
+hist(e1, xlim = c(-4 * sd(e1), 4 * sd(e1)), breaks = 20, main = "Histogram of Residuals for e1")
+hist(e2, xlim = c(-4 * sd(e2), 4 * sd(e2)), breaks = 20, main = "Histogram of Residuals for e2")
+hist(e3, xlim = c(-4 * sd(e3), 4 * sd(e3)), breaks = 20, main = "Histogram of Residuals for e3")
+
+#Do they appear to be normally distributed?
+#histograms appear somewhat normally distributed (could be better) 
+
+
+#generate the QQ plots for all three linear models. Do they appear normal? 
+
+par(mfrow = c(1,3))
+qqnorm(m1$residuals)
+qqline(m1$residuals)
+
+qqnorm(m2$residuals)
+qqline(m2$residuals)
+
+qqnorm(m3$residuals)
+qqline(m3$residuals)
+
+#Do they appear to be normally distributed?
+#these QQ plots appear normally distributed ! 
+
+
+
+#run the plot() command for all 3 models. 
+plot(m1)
+plot(m2)
+plot(m3)
+
+
+
+#run a Shapiro-wilks test on residuals for all three models. What do results suggest? 
+
+(s1 <- shapiro.test(m1$residuals))
+(s2 <- shapiro.test(m2$residuals))
+(s3 <- shapiro.test(m3$residuals))
+
+
+#the p-value for this test are greater than .05 for model 3 but less than .05 for models 1 and 2 suggesting that model 3 is normal while model 1 and 2 are not normal. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#in class Challenge 2 (4/7/2022)
+
+
+f <- "https://raw.githubusercontent.com/difiore/ada-2022-datasets/main/AVONETdataset1.csv"
+
+d <- read_csv(f, col_names = TRUE) 
+
+head(d) 
+
+d <- d %>% select(Species1, Family1, Order1, Beak.Width, Tarsus.Length, Wing.Length, Tail.Length, Mass, Habitat, Migration, Trophic.Level, Trophic.Niche, Min.Latitude, Max.Latitude, Centroid.Latitude, Range.Size)
+
+library("skimr")
+skim(d)
+
+
+p1 <- ggplot(data = d %>% drop_na(Trophic.Level), aes(x = Trophic.Level , y = log(Mass))) + geom_boxplot()
+p1
+
+p2 <- ggplot(data = d %>% drop_na(Migration), aes(x = as.factor(Migration) , y = log(Mass))) + geom_boxplot()
+p2
+
+
+
+d <- d %>% mutate(Migration = as.factor(Migration), logMass = log(Mass))
+
+m1 <- lm(logMass ~ Trophic.Level, data =d)
+m1
+
+m2 <- lm(logMass ~ Migration, data =d)
+m2
+
+summary(m1)
+summary(m2)
+
+
+#releveling to get new coefficients for comparing other variables to, in this case, migration 3 category instead of 1 which is default
+
+d <- d %>% mutate(Migration = relevel(Migration, ref = "3"))
+
+m1 <- lm(logMass ~ Trophic.Level, data =d)
+m1
+
+m2 <- lm(logMass ~ Migration, data =d)
+m2
+
+summary(m1)
+summary(m2)
+
+
+#Permutation approach to inference 
+#aov = analysis of variance model is similar to lm but allows you to pull out the F stat 
+# F-stat = 
+library("tidyverse")
+library("broom")
+original.F <- aov(log(Mass) ~ Trophic.Level, data = d) %>% tidy() %>% filter(term == "Trophic.Level")
+
+
+
+```
